@@ -1,3 +1,28 @@
+import importlib
+import subprocess
+import sys
+
+# Map of pip package names to module import names
+required_packages = {
+    'kivy': 'kivy',                  # covers kivy.app, kivy.uix.*, etc.
+    'pypiwin32': 'win32api',         # win32api, win32con, win32gui
+    'pywin32': 'win32gui',           # depending on environment
+    'setuptools': 'pkg_resources',   # required by some win32 installations
+}
+
+def install_and_import(pip_name, import_name):
+    try:
+        importlib.import_module(import_name)
+    except ImportError:
+        print(f"Installing missing package '{pip_name}'...")
+        subprocess.check_call([sys.executable, "-m", "pip", "install", pip_name])
+    finally:
+        globals()[import_name] = importlib.import_module(import_name)
+
+for pip_name, import_name in required_packages.items():
+    install_and_import(pip_name, import_name)
+
+# Now you can safely import your modules
 from kivy.app import App
 from kivy.uix.screenmanager import Screen # uses the screen in terminal
 from kivy.core.window import Window
