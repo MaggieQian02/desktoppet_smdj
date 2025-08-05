@@ -1,6 +1,7 @@
 import importlib
 import subprocess
 import sys
+import time
 
 # Map of pip package names to module import names
 required_packages = {
@@ -40,10 +41,14 @@ class l_Rloe(Screen): # character
         self.pos = 10,10
         self.size_hint = (None, None) # ratio
         self.size = Vector(2360, 1640)*0.22
-        
+
         _default_line = "default" # file location for animated png
         self._default_file_list = [os.path.join(_default_line, i) for i in os.listdir(_default_line)]
         print(self._default_file_list)
+
+        self.animating = True        # For frame animation
+        self.moving_right = True     # For horizontal motion
+        self.mode = 0                # 0: move+animate, 1: animate only, 2: freeze
 
         self.s_index = 0
         self.check_list = self._default_file_list
@@ -52,16 +57,36 @@ class l_Rloe(Screen): # character
             self.update_img = Rectangle(size=self.size)
 
     # animation
-    def default(self, ints): # default jump
+    def default(self, dt): # default jump
+        if not self.animating:
+            return
+
+        # Update image
         self.update_img.source = self.check_list[self.s_index] # select file
         
-        self.x +=1 # move horizontally to the right
-        if self.x >= self.parent.width: # come back from the left if it goes right out of the screen
-            self.x = -self.width
+        # move horizontally to the right
+        if self.moving_right:
+            self.x +=5 
+            if self.x >= self.parent.width: # come back from the left if it goes right out of the screen
+                self.x = -self.width
         
-        self.s_index += 1 # plays the next frame from the png files
+        # plays the next frame from the png files
+        self.s_index += 1 
         if self.s_index >= len(self.check_list)-0: # if number greater than the total number of files, 
             self.s_index = 0 # go back to 0
+
+    def toggle_mode(self, *args):
+        # Cycle through 0 → 1 → 2 → 0 ...
+        self.mode = (self.mode + 1) % 3
+        if self.mode == 0:
+            self.animating = True
+            self.moving_right = True
+        elif self.mode == 1:
+            self.animating = True
+            self.moving_right = False
+        elif self.mode == 2:
+            self.animating = False
+            self.moving_right = False
 
 
 class MainApp(App): # background screen
@@ -74,13 +99,50 @@ class MainApp(App): # background screen
 
         Window.borderless = True 
 
-        Window.bind(on_touch_move = self.move_touch)
+        # Bind all touch events
+        Window.bind(on_touch_down=self.on_touch_down)
+        Window.bind(on_touch_move=self.on_touch_move) # distinguish between clicking and dragging
+        Window.bind(on_touch_up=self.on_touch_up)
 
-    def move_touch(self, window, touch):
-        #print(window)
-        #print(touch)
-        self.l_rloe.x = touch.x - self.l_rloe.width/2
-        self.l_rloe.y = touch.y - self.l_rloe.height/2
+        self._touch_start_pos = None
+        self._touch_start_time = 0 # add timing threshold to consider it a drag only if touch is too long
+        self._is_dragging = False
+
+    def toggle_animation(self, window, touch):
+        if self.l_rloe.collide_point(*touch.pos):
+            self.l_rloe.toggle_mode()  # Cycle between move+animate → animate → freeze
+
+    def on_touch_down(self, window, touch):
+        if self.l_rloe.collide_point(*touch.pos):
+            self._touch_start_pos = touch.pos  # Store starting point
+            self._touch_start_time = time.time()
+            self._is_dragging = False  # Reset drag state
+
+    def on_touch_move(self, window, touch):
+        if self._touch_start_pos:
+            dx = touch.pos[0] - self._touch_start_pos[0]
+            dy = touch.pos[1] - self._touch_start_pos[1]
+            distance_moved = (dx**2 + dy**2)**0.5
+
+            if distance_moved > 10:  # Drag threshold (pixels)
+                self._is_dragging = True
+                self.l_rloe.x = touch.x - self.l_rloe.width / 2
+                self.l_rloe.y = touch.y - self.l_rloe.height / 2
+
+    def on_touch_up(self, window, touch):
+        if self.l_rloe.collide_point(*touch.pos):
+            duration = time.time() - self._touch_start_time
+            dx = touch.pos[0] - self._touch_start_pos[0]
+            dy = touch.pos[1] - self._touch_start_pos[1]
+            distance_moved = (dx**2 + dy**2)**0.5
+
+            # If very little movement and short duration, treat as a click
+            if not self._is_dragging and distance_moved <= 10 and duration <= 0.3:
+                # Only toggle if no drag occurred
+                self.l_rloe.toggle_mode()
+
+        self._touch_start_pos = None
+        self._is_dragging = False
 
 
     def build(self):
