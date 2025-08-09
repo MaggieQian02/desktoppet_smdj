@@ -33,10 +33,10 @@ A video tutorial for installation and usage will be recorded.
 ## 📷 Preview
 
 ### 🐾 Animated Pet
-![Shimok & Dongjae Animated Pet](assets/pet.gif)
+<img src="assets/pet.gif" alt="Shimok & Dongjae Animated Pet" width="500">
 
 ### 🎬 And the prosecutors themselves...
-![Shimok & Dongjae Drama Still](assets/smdj.png)
+<img src="assets/smdj.png" alt="Shimok & Dongjae Drama Still" width="500">
 
 
 Made with ❤️ — feel free to contribute or file issues.
