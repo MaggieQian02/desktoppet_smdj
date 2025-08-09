@@ -37,3 +37,6 @@ A video tutorial for installation and usage will be recorded.
 
 ### 🎬 And the prosecutors themselves...
 ![Shimok & Dongjae Drama Still](assets/smdj.jpg)
+
+
+Made with ❤️ — feel free to contribute or file issues.
