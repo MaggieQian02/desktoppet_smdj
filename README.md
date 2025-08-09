@@ -36,7 +36,7 @@ A video tutorial for installation and usage will be recorded.
 ![Shimok & Dongjae Animated Pet](assets/pet.gif)
 
 ### 🎬 And the prosecutors themselves...
-![Shimok & Dongjae Drama Still](assets/smdj.jpg)
+![Shimok & Dongjae Drama Still](assets/smdj.png)
 
 
 Made with ❤️ — feel free to contribute or file issues.
