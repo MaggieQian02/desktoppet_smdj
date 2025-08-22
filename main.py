@@ -50,7 +50,7 @@ class Select_Button(Button):
         with self.canvas.before:
             # hex colour code: red = #781e18, blue = #121c3a, pink = #e99994, light blue = #39529c
             Color(*get_color_from_hex("#39529c"))
-            self.rect = BoxShadow(size=self.size, border_radius=(45,45,45,45), inset=True, blur_radius=50)
+            self.rect = BoxShadow(size=self.size, border_radius=(25,25,25,25), inset=True, blur_radius=100)
         self.bind(pos=self.update_canvas)
 
         for key,values in kwargs.items():
@@ -71,6 +71,20 @@ class Select_Button(Button):
     def on_release(self):
         self.end_an.start(self.rect)
 
+        app = App.get_running_app()  # Get MainApp instance
+
+        # Hide all buttons first
+        for i in app.check_box_list:
+            i.pos = (-500, -500)
+
+        # Look up animation by name
+        if self.text in app.l_rloe.animations:
+            file_list, speed = app.l_rloe.animations[self.text] # unpack tuple
+            app.l_rloe.check_list = file_list
+            app.l_rloe.frame_speed = speed
+            app.l_rloe.s_index = 0  # restart from frame 0
+            app.reschedule_animation()  
+
 
 class l_Rloe(Screen): # character
     def __init__(self):
@@ -79,21 +93,27 @@ class l_Rloe(Screen): # character
         self.size_hint = (None, None) # ratio
         self.size = Vector(2360, 1640)*0.2
 
-        # file locations for animated png
+        self.frame_speed = 1/8  # default
+
+        # Load animation folders
         _default_line = "default" 
         self._default_file_list = [os.path.join(_default_line, i) for i in os.listdir(_default_line)]
-        #print(self._default_file_list)
-
         _working_line = "working"
         self._working_file_list = [os.path.join(_working_line, i) for i in os.listdir(_working_line)]
+
+        # Animation registry (name → (file_list, method)) 
+        self.animations = {
+            "Default": (self._default_file_list, 1/8), 
+            "Working": (self._working_file_list, 1/6),
+        }
 
         self.animating = True        # For frame animation
         self.moving_right = True     # For horizontal motion
         self.mode = 0                # 0: move+animate, 1: animate only, 2: freeze
 
+        # state
         self.s_index = 0
-        self.check_list = self._default_file_list
-        #self.check_list = self._working_file_list
+        self.check_list = self._default_file_list # start with default
 
         with self.canvas:
             self.update_img = Rectangle(size=self.size)
@@ -103,31 +123,21 @@ class l_Rloe(Screen): # character
             self.x += 2 
             if self.x >= self.parent.width: # come back from the left if it goes right out of the screen
                 self.x = -self.width
-    
-    # animations
-    # default jump
-    def default(self, dt): 
-        if not self.animating:
-            return
-        if self.moving_right:
-            self.move_right()
-        # Update image
-        self.update_img.source = self.check_list[self.s_index] # select file
-        # plays the next frame from the png files
-        self.s_index += 1 
-        if self.s_index >= len(self.check_list)-0: # if number greater than the total number of files, 
-            self.s_index = 0 # go back to 0
 
-    # working overtime 
-    def working(self, dt):
+    # Generic animation updater 
+    def update_animation(self, dt):
         if not self.animating:
             return
+
+        # Switch frame
+        self.update_img.source = self.check_list[self.s_index]
+        self.s_index = (self.s_index + 1) % len(self.check_list)
+
+        # Move if enabled
         if self.moving_right:
-            self.move_right()
-        self.update_img.source = self.check_list[self.s_index] # select file
-        self.s_index += 1 
-        if self.s_index >= len(self.check_list)-0: 
-            self.s_index = 0 
+            self.x += 1
+            if self.x >= self.parent.width:
+                self.x = -self.width
 
 
     def toggle_mode(self, *args):
@@ -253,9 +263,13 @@ class MainApp(App): # background screen
         
         win32gui.SetLayeredWindowAttributes(hwnd, win32api.RGB(0, 0, 0), 0, win32con.LWA_COLORKEY) # make the screen transparent
 
-        Clock.schedule_interval(self.l_rloe.default, 1/8) # animation play speed: seconds per frame
+        Clock.schedule_interval(self.l_rloe.update_animation, 1/8) # animation play speed: seconds per frame
 
+    def reschedule_animation(self):
+        Clock.unschedule(self.l_rloe.update_animation)
+        Clock.schedule_interval(self.l_rloe.update_animation, self.l_rloe.frame_speed)
     
+
 # run
 if __name__ == '__main__': 
     MainApp().run()
